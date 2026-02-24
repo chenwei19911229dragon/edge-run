@@ -3,190 +3,217 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edge Run</title>
+<title>Edge Run 2.0</title>
+
 <style>
-body{margin:0;overflow:hidden;background:#111;font-family:Arial;}
-canvas{display:block;}
-#ui{
+body{
+margin:0;
+overflow:hidden;
+font-family:Arial;
+background:linear-gradient(180deg,#1e3c72,#2a5298);
+}
+
+canvas{
+display:block;
+}
+
+#menu,#gameOver{
 position:fixed;
 top:0;
 left:0;
 width:100%;
 height:100%;
 display:flex;
+flex-direction:column;
 justify-content:center;
 align-items:center;
-flex-direction:column;
 color:white;
 }
+
 button{
 padding:15px 30px;
-font-size:20px;
+margin:10px;
+font-size:18px;
 border:none;
 border-radius:8px;
-background:#00ffff;
-color:black;
-margin-top:20px;
+background:#00d2d3;
+}
+
+#ui{
+position:fixed;
+top:10px;
+left:10px;
+color:white;
+font-size:18px;
+}
+
+.controls{
+position:fixed;
+bottom:20px;
+width:100%;
+display:flex;
+justify-content:space-between;
+padding:0 40px;
+}
+
+.ctrlBtn{
+width:80px;
+height:80px;
+border-radius:50%;
+background:rgba(255,255,255,0.3);
+font-size:30px;
 }
 </style>
 </head>
+
 <body>
 
+<div id="menu">
+<h1>EDGE RUN 2.0</h1>
+<p>Best Score: <span id="bestScore">0</span></p>
+<button onclick="startGame()">Start Game</button>
+<button onclick="changeSkin()">Change Skin</button>
+</div>
+
+<div id="gameOver" style="display:none;">
+<h1>Game Over</h1>
+<p>Score: <span id="finalScore"></span></p>
+<button onclick="revive()">Revive</button>
+<button onclick="restart()">Restart</button>
+</div>
+
+<div id="ui">
+Score: <span id="score">0</span>
+</div>
+
+<div class="controls">
+<button class="ctrlBtn" onclick="moveLeft()">◀</button>
+<button class="ctrlBtn" onclick="moveRight()">▶</button>
+</div>
+
 <canvas id="game"></canvas>
-<div id="ui"></div>
 
 <script>
-
 let canvas=document.getElementById("game");
 let ctx=canvas.getContext("2d");
-let ui=document.getElementById("ui");
 
-function resize(){
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
-}
-resize();
-window.addEventListener("resize",resize);
-
-let leftX,rightX;
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 
 let player={
-  x:0,y:0,r:15,
-  speed:14,
-  moving:false,
-  direction:1
+x:200,
+y:canvas.height-150,
+size:30,
+color:"cyan"
 };
 
-let obstacleY=-100;
-let gapX=0;
-let gapWidth=120;
-let speed=3;
+let skins=["cyan","red","yellow","lime","white"];
+let skinIndex=0;
 
+let obstacles=[];
+let speed=4;
 let score=0;
 let best=localStorage.getItem("bestScore")||0;
+document.getElementById("bestScore").innerText=best;
 
-let state="menu";
+let gameRunning=false;
+let revived=false;
 
-function initGame(){
-  leftX=60;
-  rightX=canvas.width-60;
-  player.x=leftX;
-  player.y=canvas.height-120;
-  player.moving=false;
-  obstacleY=-100;
-  speed=3;
-  score=0;
-  newGap();
-  state="playing";
-  ui.innerHTML="";
+function startGame(){
+document.getElementById("menu").style.display="none";
+gameRunning=true;
+loop();
 }
 
-function newGap(){
-  gapX=Math.random()*(canvas.width-gapWidth);
+function restart(){
+location.reload();
 }
 
-function update(){
-  if(state!=="playing") return;
-
-  speed+=0.001;
-  obstacleY+=speed;
-
-  if(obstacleY>canvas.height){
-    obstacleY=-20;
-    newGap();
-    score++;
-  }
-
-  if(player.moving){
-    player.x+=player.direction*player.speed;
-
-    if(player.direction>0 && player.x>=rightX){
-      player.x=rightX;
-      player.moving=false;
-    }
-    if(player.direction<0 && player.x<=leftX){
-      player.x=leftX;
-      player.moving=false;
-    }
-  }
-
-  if(obstacleY+20>player.y-player.r &&
-     obstacleY<player.y+player.r){
-
-    if(player.x < gapX || player.x > gapX+gapWidth){
-      state="dead";
-      if(score>best){
-        best=score;
-        localStorage.setItem("bestScore",best);
-      }
-      showGameOver();
-    }
-  }
+function revive(){
+if(!revived){
+revived=true;
+document.getElementById("gameOver").style.display="none";
+player.x=200;
+gameRunning=true;
+loop();
+}
 }
 
-function draw(){
+function changeSkin(){
+skinIndex++;
+if(skinIndex>=skins.length)skinIndex=0;
+player.color=skins[skinIndex];
+}
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function moveLeft(){
+player.x-=40;
+}
 
-  let g=ctx.createLinearGradient(0,0,0,canvas.height);
-  g.addColorStop(0,"#1e3c72");
-  g.addColorStop(1,"#2a5298");
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+function moveRight(){
+player.x+=40;
+}
 
-  ctx.fillStyle="#ff4d4d";
-  ctx.fillRect(0,obstacleY,gapX,20);
-  ctx.fillRect(gapX+gapWidth,obstacleY,
-               canvas.width-(gapX+gapWidth),20);
+document.addEventListener("keydown",(e)=>{
+if(e.key==="ArrowLeft")moveLeft();
+if(e.key==="ArrowRight")moveRight();
+});
 
-  ctx.beginPath();
-  ctx.fillStyle="#00ffff";
-  ctx.arc(player.x,player.y,15,0,Math.PI*2);
-  ctx.fill();
+function spawnObstacle(){
+let size=40;
+let x=Math.random()*(canvas.width-size);
+obstacles.push({x:x,y:-50,size:size});
+}
 
-  ctx.fillStyle="white";
-  ctx.font="20px Arial";
-  ctx.fillText("Score: "+score,20,40);
-  ctx.fillText("Best: "+best,20,70);
+function drawPlayer(){
+ctx.fillStyle=player.color;
+ctx.fillRect(player.x,player.y,player.size,player.size);
+}
+
+function drawObstacles(){
+ctx.fillStyle="white";
+for(let i=0;i<obstacles.length;i++){
+let o=obstacles[i];
+o.y+=speed;
+ctx.fillRect(o.x,o.y,o.size,o.size);
+
+if(
+o.x<player.x+player.size &&
+o.x+o.size>player.x &&
+o.y<player.y+player.size &&
+o.y+o.size>player.y
+){
+gameOver();
+}
+
+if(o.y>canvas.height){
+obstacles.splice(i,1);
+score++;
+document.getElementById("score").innerText=score;
+if(score%10===0)speed+=0.5;
+}
+}
+}
+
+function gameOver(){
+gameRunning=false;
+document.getElementById("finalScore").innerText=score;
+document.getElementById("gameOver").style.display="flex";
+if(score>best){
+localStorage.setItem("bestScore",score);
+}
 }
 
 function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
+if(!gameRunning)return;
+ctx.clearRect(0,0,canvas.width,canvas.height);
+drawPlayer();
+drawObstacles();
+requestAnimationFrame(loop);
 }
 
-function showMenu(){
-  ui.innerHTML=`
-    <h1>EDGE RUN</h1>
-    <p>Best Score: ${best}</p>
-    <button onclick="initGame()">Start Game</button>
-  `;
-}
-
-function showGameOver(){
-  ui.innerHTML=`
-    <h1>Game Over</h1>
-    <p>Score: ${score}</p>
-    <p>Best: ${best}</p>
-    <button onclick="initGame()">Play Again</button>
-  `;
-}
-
-canvas.addEventListener("click",()=>{
-  if(state!=="playing") return;
-  if(player.moving) return;
-
-  if(player.x===leftX){
-    player.direction=1;
-  }else{
-    player.direction=-1;
-  }
-  player.moving=true;
-});
-
-showMenu();
-loop();
+setInterval(()=>{
+if(gameRunning)spawnObstacle();
+},1200);
 
 </script>
 </body>
