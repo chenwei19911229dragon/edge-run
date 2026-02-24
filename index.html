@@ -3,19 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edge Run 2.0</title>
+<title>Edge Run 3.0</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 font-family:Arial;
-background:linear-gradient(180deg,#1e3c72,#2a5298);
+background:linear-gradient(180deg,#141e30,#243b55);
 }
 
-canvas{
-display:block;
-}
+canvas{display:block;}
 
 #menu,#gameOver{
 position:fixed;
@@ -69,16 +67,15 @@ font-size:30px;
 <body>
 
 <div id="menu">
-<h1>EDGE RUN 2.0</h1>
+<h1>EDGE RUN 3.0</h1>
 <p>Best Score: <span id="bestScore">0</span></p>
+<p>Total Coins: <span id="totalCoins">0</span></p>
 <button onclick="startGame()">Start Game</button>
-<button onclick="changeSkin()">Change Skin</button>
 </div>
 
 <div id="gameOver" style="display:none;">
 <h1>Game Over</h1>
 <p>Score: <span id="finalScore"></span></p>
-<button onclick="revive()">Revive</button>
 <button onclick="restart()">Restart</button>
 </div>
 
@@ -100,24 +97,20 @@ let ctx=canvas.getContext("2d");
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 
-let player={
-x:200,
-y:canvas.height-150,
-size:30,
-color:"cyan"
-};
-
-let skins=["cyan","red","yellow","lime","white"];
-let skinIndex=0;
+let player={x:200,y:canvas.height-150,size:30,color:"cyan"};
 
 let obstacles=[];
+let coins=[];
 let speed=4;
 let score=0;
+
 let best=localStorage.getItem("bestScore")||0;
+let totalCoins=localStorage.getItem("coins")||0;
+
 document.getElementById("bestScore").innerText=best;
+document.getElementById("totalCoins").innerText=totalCoins;
 
 let gameRunning=false;
-let revived=false;
 
 function startGame(){
 document.getElementById("menu").style.display="none";
@@ -125,33 +118,10 @@ gameRunning=true;
 loop();
 }
 
-function restart(){
-location.reload();
-}
+function restart(){location.reload();}
 
-function revive(){
-if(!revived){
-revived=true;
-document.getElementById("gameOver").style.display="none";
-player.x=200;
-gameRunning=true;
-loop();
-}
-}
-
-function changeSkin(){
-skinIndex++;
-if(skinIndex>=skins.length)skinIndex=0;
-player.color=skins[skinIndex];
-}
-
-function moveLeft(){
-player.x-=40;
-}
-
-function moveRight(){
-player.x+=40;
-}
+function moveLeft(){player.x-=40;}
+function moveRight(){player.x+=40;}
 
 document.addEventListener("keydown",(e)=>{
 if(e.key==="ArrowLeft")moveLeft();
@@ -162,6 +132,12 @@ function spawnObstacle(){
 let size=40;
 let x=Math.random()*(canvas.width-size);
 obstacles.push({x:x,y:-50,size:size});
+}
+
+function spawnCoin(){
+let size=20;
+let x=Math.random()*(canvas.width-size);
+coins.push({x:x,y:-50,size:size});
 }
 
 function drawPlayer(){
@@ -176,12 +152,10 @@ let o=obstacles[i];
 o.y+=speed;
 ctx.fillRect(o.x,o.y,o.size,o.size);
 
-if(
-o.x<player.x+player.size &&
+if(o.x<player.x+player.size &&
 o.x+o.size>player.x &&
 o.y<player.y+player.size &&
-o.y+o.size>player.y
-){
+o.y+o.size>player.y){
 gameOver();
 }
 
@@ -189,7 +163,26 @@ if(o.y>canvas.height){
 obstacles.splice(i,1);
 score++;
 document.getElementById("score").innerText=score;
-if(score%10===0)speed+=0.5;
+if(score%15===0)speed+=0.5;
+}
+}
+}
+
+function drawCoins(){
+ctx.fillStyle="gold";
+for(let i=0;i<coins.length;i++){
+let c=coins[i];
+c.y+=speed;
+ctx.fillRect(c.x,c.y,c.size,c.size);
+
+if(c.x<player.x+player.size &&
+c.x+c.size>player.x &&
+c.y<player.y+player.size &&
+c.y+c.size>player.y){
+coins.splice(i,1);
+totalCoins++;
+localStorage.setItem("coins",totalCoins);
+document.getElementById("totalCoins").innerText=totalCoins;
 }
 }
 }
@@ -208,13 +201,12 @@ if(!gameRunning)return;
 ctx.clearRect(0,0,canvas.width,canvas.height);
 drawPlayer();
 drawObstacles();
+drawCoins();
 requestAnimationFrame(loop);
 }
 
-setInterval(()=>{
-if(gameRunning)spawnObstacle();
-},1200);
-
+setInterval(()=>{if(gameRunning)spawnObstacle();},1200);
+setInterval(()=>{if(gameRunning)spawnCoin();},2000);
 </script>
 </body>
 </html>
