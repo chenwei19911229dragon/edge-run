@@ -91,6 +91,20 @@ Score: <span id="score">0</span>
 <canvas id="game"></canvas>
 
 <script>
+// ===== SOUND SYSTEM =====
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playBeep(freq,duration){
+let osc = audioCtx.createOscillator();
+let gain = audioCtx.createGain();
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.frequency.value = freq;
+osc.start();
+gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+osc.stop(audioCtx.currentTime + duration);
+}
 let canvas=document.getElementById("game");
 let ctx=canvas.getContext("2d");
 
@@ -117,7 +131,9 @@ document.getElementById("menu").style.display="none";
 gameRunning=true;
 loop();
 }
-
+setInterval(()=>{
+playBeep(300,0.05);
+},800);
 function restart(){location.reload();}
 
 function moveLeft(){player.x-=40;}
@@ -181,12 +197,13 @@ c.y<player.y+player.size &&
 c.y+c.size>player.y){
 coins.splice(i,1);
 totalCoins++;
+playBeep(600,0.1);
 localStorage.setItem("coins",totalCoins);
 document.getElementById("totalCoins").innerText=totalCoins;
 }
 }
 }
-
+playBeep(150,0.5);
 function gameOver(){
 gameRunning=false;
 document.getElementById("finalScore").innerText=score;
